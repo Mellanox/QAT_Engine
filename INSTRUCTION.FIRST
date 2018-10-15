@@ -1,0 +1,128 @@
+Quick Assist Driver & Engine with supported AES-GCM instructions:
+
+1. Installing Quick Assist Driver:
+	A. Check the Quick Assist card is connected and available on the machine using: 
+		# lspci | grep QAT
+	B. Go to "https://01.org/packet-processing/intel%C2%AE-quickassist-technology-drivers-and-patches" and download the appropriate HW driver.
+	C. Create a working directory for the software:
+		# mkdir /<QAT working directory>
+		# cd /<QAT working directory>
+	D. Unpack the tarball in the working directory:
+		# tar -zxof <QAT tarball name>
+	E. Install as any other linux software installtion proccess:
+		# ./configure
+		# make
+		# make install
+	F. Check the modules are installed correctly and loaded:
+		# lsmod | grep qat
+	   Output should be smiliar to:
+	   	qat_dh895xcc           20480  0 
+		intel_qat             258048  2 usdm_drv,qat_dh895xcc
+		dh_generic             16384  1 intel_qat
+		uio                    20480  1 intel_qat
+		authenc                16384  1 intel_qat
+	G. When the acceleration software is installed, a script file titled qat_service is installed
+	   in the /etc/init.d directory.
+	   The script file can be used to start and stop the acceleration software. To start the
+	   software, issue the following command:
+		# service qat_service start
+	H. For any further assitcance, use the guide on "https://01.org/packet-processing/intel%C2%AE-quickassist-technology-drivers-and-patches"
+
+2. Installing OpenSSL
+	A. Clone OpenSSL* from Github at the following location:
+		# git clone https://github.com/openssl/openssl.git
+	B. Checkout to 1.1.0H release:
+		# git checkout OpenSSL_1_1_0h
+	C. Compile and install:
+		# cd /openssl
+		# ./config --prefix=/usr/local/ssl -Wl,-rpath,\${LIBRPATH}
+		# make depend (if recommended by the OpenSSL\* build system)
+		# make
+		# make install
+	   The following example is assuming that you want OpenSSL* to be installed to /usr/local/ssl.
+	 Note: As the Intel® QAT OpenSSL* Engine will be built as a dynamic engine it is important to tell OpenSSL* where to find the dynamic engines
+	 at runtime. This is achieved by exporting the following environment variable (assuming the example paths above):
+		#  export OPENSSL_ENGINES=/usr/local/ssl/lib/engines-1.1
+
+3. Install the Qat Engine:
+	A. Clone QAT_Engine from Github at the following location:                                                                                           
+                # git clone https://github.com/GalSha/QAT_Engine                                                                                          
+	B. Install with the following commands:
+		# cd /<QAT_Engine directory>
+		# ./autogen.sh
+		# ./configure \
+		  --with-qat_dir=/<QAT directory> \
+		  --with-openssl_dir=/<openssl directory> \
+		  --with-openssl_install_dir=/usr/local/ssl \
+		  --enable-upstream_driver \
+		  --enable-usdm
+		# make
+		# make install
+	   The following example is assuming that OpenSSL* was installed to /usr/local/ssl.
+	   Note: To add debug massages, add the following flags to the configure command: --enable-qat_warnings --enable-qat_debug
+	C. Copy the correct Quick Assist driver config files. The files are located at: '<QAT_Engine directory>/qat/config'.
+	   The files are grouped by acceleration device, please choose the files appropriate to your acceleration device only.
+	   If building to link against the Upstream Intel® QAT userspace shared library (which the examples above do) then you should use 
+	   the files in dh895xcc_upstream, or c6xx.
+	   * If your application runs one (or very few) processes, but has multiple threads in each process, each accessing the acceleration device,
+	     then you should pick the multi_thread_optimized config files. 
+	     An example of this is a webserver that creates a new thread for each incoming connection.
+	   * If your application scales by creating new processes, then you should pick the multi_process_optimized config files. 
+	     An example of this is an event driven application that runs as a single thread in an event loop. 
+	     In this type of application it is usual for the application to create at least one new process for each cpu core you want to utilize.
+	D. Stop the Acceleration Driver:
+		# service qat_service stop
+	E. Copy the appropriate .conf file to /etc
+	F. Start the Acceleration Driver:
+		# service qat_service start
+
+4. Check everything is installed correctly:
+	A. Check Qat Engine is loaded correctly to OpenSSL:
+		# cd /<openssl directory>/apps
+		# ./openssl engine -t -c -vvvv qat 
+	Output should be: 
+		(qat) Reference implementation of QAT crypto engine
+		 [RSA, DSA, DH, AES-128-CBC-HMAC-SHA1, AES-128-CBC-HMAC-SHA256, AES-256-CBC-HMAC-SHA1, AES-256-CBC-HMAC-SHA256, 
+		 id-aes128-GCM, id-aes256-GCM, TLS1-PRF]
+		     [ available ]
+		     ENABLE_EXTERNAL_POLLING: Enables the external polling interface to the engine.
+        		  (input flags): NO_INPUT
+		     POLL: Polls the engine for any completed requests
+        		  (input flags): NO_INPUT
+		     SET_INSTANCE_FOR_THREAD: Set instance to be used by this thread
+        		  (input flags): NUMERIC
+		     GET_NUM_OP_RETRIES: Get number of retries
+        		  (input flags): NO_INPUT
+		     SET_MAX_RETRY_COUNT: Set maximum retry count
+        		  (input flags): NUMERIC
+		     SET_INTERNAL_POLL_INTERVAL: Set internal polling interval
+        		  (input flags): NUMERIC
+		     GET_EXTERNAL_POLLING_FD: Returns non blocking fd for crypto engine
+        		  (input flags): NO_INPUT
+		     ENABLE_EVENT_DRIVEN_POLLING_MODE: Set event driven polling mode
+        		  (input flags): NO_INPUT
+		     GET_NUM_CRYPTO_INSTANCES: Get the number of crypto instances
+        		  (input flags): NO_INPUT
+		     DISABLE_EVENT_DRIVEN_POLLING_MODE: Unset event driven polling mode
+        		  (input flags): NO_INPUT
+		     SET_EPOLL_TIMEOUT: Set epoll_wait timeout
+        		  (input flags): NUMERIC
+		     SET_CRYPTO_SMALL_PACKET_OFFLOAD_THRESHOLD: Set QAT small packet threshold
+        		  (input flags): STRING
+		     ENABLE_INLINE_POLLING: Enables the inline polling mode.
+        		  (input flags): NO_INPUT
+		     ENABLE_HEURISTIC_POLLING: Enable the heuristic polling mode
+        		  (input flags): NO_INPUT
+		    GET_NUM_REQUESTS_IN_FLIGHT: Get the number of in-flight requests
+		          (input flags): NUMERIC
+	B. Check client-server communaction, change directory to <openssl directory>/apps:
+		# cd <openssl directory>/apps
+	   Generate a certificate:
+	   	# ./openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes 
+	   Start a server: 
+	   	# ./openssl s_server -tls1_2 -4 -key key.pem -cert cert.pem -cipher ECDHE-RSA-AES128-GCM-SHA256 -engine qat
+	   Start a client:
+	   	# ./openssl s_client  -tls1_2 -connect 127.0.0.1:4433 -cipher ECDHE-RSA-AES128-GCM-SHA256 -engine qat
+	   Note: You can remove '-engine qat' flag to signal the OpenSSL to use its software implementation.
+	         You can add '-debug' flag for additional printing.
+5. Done.
