@@ -58,6 +58,9 @@
 # define HMAC_KEY_SIZE              64
 # define TLS_VIRT_HDR_SIZE          13
 # define TLS_MAX_PADDING_LENGTH     255
+# define GCM_TAG 					16
+# define AES_IV_LEN_GCM             12
+
 
 /* QAT max supported pipelines may be different from
  * SSL max supported ones.
@@ -86,6 +89,14 @@
                                      EVP_CIPH_CBC_MODE | \
                                      EVP_CIPH_CUSTOM_IV)
 # define QAT_CHAINED_FLAG           (QAT_CBC_FLAGS | \
+                                     EVP_CIPH_FLAG_CUSTOM_CIPHER | \
+                                     EVP_CIPH_FLAG_AEAD_CIPHER | \
+                                     EVP_CIPH_FLAG_PIPELINE)
+
+# define QAT_GCM_FLAGS              (QAT_COMMON_CIPHER_FLAG | \
+                                     EVP_CIPH_GCM_MODE | \
+                                     EVP_CIPH_CUSTOM_IV)
+# define QAT_CHAINED_FLAG_GCM           (QAT_GCM_FLAGS | \
                                      EVP_CIPH_FLAG_CUSTOM_CIPHER | \
                                      EVP_CIPH_FLAG_AEAD_CIPHER | \
                                      EVP_CIPH_FLAG_PIPELINE)
@@ -158,6 +169,10 @@ typedef struct qat_chained_ctx_t {
     unsigned int numpipes;
     unsigned int npipes_last_used;
     unsigned long total_op;
+
+    /*GCM */
+    char* gcm_aad;
+    char gcm_tag[GCM_TAG];
 } qat_chained_ctx;
 
 void qat_create_ciphers(void);
