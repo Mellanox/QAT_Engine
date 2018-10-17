@@ -1233,7 +1233,7 @@ int qat_chained_ciphers_ctrl_gcm(EVP_CIPHER_CTX *ctx, int type, int arg, void *p
         }
     	memset(ptr,0,GCM_TAG);
     	memcpy(ptr,qctx->gcm_tag,GCM_TAG);
-        retVal = 1;
+        return 1; //because of wierd bug whcih make all tag zeros
         break;
     case EVP_CTRL_AEAD_SET_TAG:
         if (arg != GCM_TAG) {
