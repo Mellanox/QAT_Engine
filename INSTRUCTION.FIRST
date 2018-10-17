@@ -58,6 +58,8 @@ Quick Assist Driver & Engine with supported AES-GCM instructions:
 		  --enable-usdm
 		# make
 		# make install
+		# make install
+		(do make install twice because somehow it wont install all of the Engine on one install session).
 	   The following example is assuming that OpenSSL* was installed to /usr/local/ssl.
 	   Note: To add debug massages, add the following flags to the configure command: --enable-qat_warnings --enable-qat_debug
 	C. Copy the correct Quick Assist driver config files. The files are located at: '<QAT_Engine directory>/qat/config'.
