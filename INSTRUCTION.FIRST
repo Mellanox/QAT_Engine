@@ -46,7 +46,7 @@ Quick Assist Driver & Engine with supported AES-GCM instructions:
 
 3. Install the Qat Engine:
 	A. Clone QAT_Engine from Github at the following location:                                                                                           
-                # git clone https://github.com/GalSha/QAT_Engine                                                                                          
+                # git clone https://github.com/Mellanox/QAT_Engine                                                                                         
 	B. Install with the following commands:
 		# cd /<QAT_Engine directory>
 		# ./autogen.sh
